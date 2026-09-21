@@ -1,0 +1,44 @@
+name: Build&Push
+
+
+on:
+  push:
+    branches:
+      - master
+  pull_request:
+    types:
+      - opened
+      - synchronize
+  release:
+    types:
+      - published
+
+env:
+  REGISTRY: ghcr.io
+  IMAGE_NAME: ${{ github.repository }}
+
+jobs:
+  build-push-deploy:
+    runs-on: ubuntu-latest
+    steps:
+
+      - name: Form Docker Tag
+        id: form_docker_tag
+        run: |
+          if [[ "${{ github.event_name }}" == "release" ]]; then
+            DOCKER_TAG=${GITHUB_REF#refs/tags/v}
+          else
+            DOCKER_TAG=stage-${GITHUB_SHA:0:7}-$(date +%s)
+          fi
+          echo "DOCKER_TAG=$DOCKER_TAG" >> $GITHUB_ENV
+          echo "DOCKER_TAG=$DOCKER_TAG" >> $GITHUB_OUTPUT
+    
+      - name: Build and push
+        uses: docker/build-push-action@v6
+        with:
+          push: true
+          tags: |
+            ghcr.io/${{ github.repository }}:${{ env.DOCKER_TAG }}
+
+
+    
